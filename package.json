@@ -3,6 +3,12 @@
     "jasmine": "^5.1.0"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.398.0",
+    "@aws-sdk/client-s3": "^3.398.0",
+    "@aws-sdk/client-secrets-manager": "^3.398.0",
+    "@aws-sdk/util-dynamodb": "^3.398.0",
+    "amazon-cognito-identity-js": "^6.3.5",
+    "aws-api-gateway-client": "^0.3.7",
     "fs": "^0.0.1-security"
   }
 }
