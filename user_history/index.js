@@ -140,6 +140,19 @@ const main = async event => {
         .catch((error) => {
             console.error('Error uploading file to S3:', error);
         });
+    
+    //for each of the input name that comes in 
+    checkFolderForPDF(PATIENT_REGISTRATION_S3_BUCKET, PatientName)
+    .then((result) => {
+        if (result) {
+        console.log('PDF file found in the folder.');
+        } else {
+        console.log('No PDF file found in the folder.');
+        }
+    })
+    .catch((error) => {
+        console.error('Error checking folder for PDF:', error);
+    });
 
     
 
