@@ -1,0 +1,35 @@
+[
+    {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "address": "123 Main St",
+      "condition": "Fever",
+      "isSubmitted": true,
+      "birthDate": "1990-01-01"
+    },
+    {
+      "name": "Jane Smith",
+      "email": "jane@example.com",
+      "address": "456 Elm St",
+      "condition": "Cough",
+      "isSubmitted": false,
+      "birthDate": "1985-05-15"
+    },
+    {
+      "name": "Alice Johnson",
+      "email": "alice@example.com",
+      "address": "789 Oak St",
+      "condition": "Headache",
+      "isSubmitted": true,
+      "birthDate": "1995-08-20"
+    },
+    {
+      "name": "Bob Brown",
+      "email": "bob@example.com",
+      "address": "101 Pine St",
+      "condition": "Sore Throat",
+      "isSubmitted": true,
+      "birthDate": "1982-12-10"
+    }
+]
+  

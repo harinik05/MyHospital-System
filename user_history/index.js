@@ -110,7 +110,44 @@ async function checkFolderForPDF(bucketName, folderName, S3Client) {
 6. BOD
 return this as an object with all the details and this object can be iterated over several users (done in the main handler function)
 */
-
+function parsePatientInfo(patientJSON) {
+    try {
+      // Parse the JSON string into an object
+      const patientData = JSON.parse(patientJSON);
+  
+      // Check if the parsed data is an array
+      if (!Array.isArray(patientData)) {
+        throw new Error('Input data is not an array.');
+      }
+  
+      // Create an array to store the parsed patient objects
+      const parsedPatients = [];
+  
+      // Iterate over each patient object in the array
+      for (const patient of patientData) {
+        // Extract the desired information from each patient object
+        const { name, email, address, condition, isSubmitted, birthDate } = patient;
+  
+        // Create a new object with the extracted information
+        const parsedPatient = {
+          name,
+          email,
+          address,
+          condition,
+          isSubmitted,
+          birthDate
+        };
+  
+        // Add the parsed patient object to the result array
+        parsedPatients.push(parsedPatient);
+      }
+  
+      return parsedPatients;
+    } catch (error) {
+      console.error('Error parsing patient data:', error);
+      return []; // Return an empty array in case of errors
+    }
+  }
 
 
 //fuction that will check if the person has appropriate credentials so that they can edit their information
@@ -154,7 +191,7 @@ const main = async event => {
         console.error('Error checking folder for PDF:', error);
     });
 
-    
+
 
 }
 
