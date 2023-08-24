@@ -1,30 +1,32 @@
 const AWS = require("aws-sdk");
-const {S3Client, GetObjectCommand} = require("@aws-sdk/client-s3");
-const {marshall} = require("@aws-sdk/util-dynamodb");
-const {SecretsManagerClient, GetSecretValueCommand} = require("@aws-sdk/client-secrets-manager");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { marshall } = require("@aws-sdk/util-dynamodb");
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const apiGatewayClient = require("aws-api-gateway-client").default;
-const{DynamoDBClient, QueryCommand, BatchWriteItemCommand} = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb");
 
-const init = () =>{
+const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
     const PATIENT_REGISTRATION_S3_BUCKET = process.env.PatientS3Bucket;
     const PATIENT_REGISTRATION_S3_KEY = process.env.PatientS3Key;
+    const PATIENT_REGISTRATION_S3_PATH = process.env.PatientS3Path;
     const PATIENT_APIG_URL = process.env.PatientAPIGURL;
     const PATIENT_APIG_PATH = process.env.PatientAPIGPath;
     const PATIENT_APIG_SECRET_KEY = process.env.PatientAPIGSecretKey;
     const AWS_REGION = process.env.AWSRegion;
 
-    const dynamoDbClient = new DynamoDBClient({region: AWS_REGION});
-    const S3Client = new S3Client({region: AWS_REGION});
-    const secretsManClient = new SecretsManagerClient({region: AWS_REGION});
+    const dynamoDbClient = new DynamoDBClient({ region: AWS_REGION });
+    const S3Client = new S3Client({ region: AWS_REGION });
+    const secretsManClient = new SecretsManagerClient({ region: AWS_REGION });
 
-    return{
-        PATIENT_HISTORY_TABLE, 
+    return {
+        PATIENT_HISTORY_TABLE,
         PATIENT_REGISTRATION_S3_BUCKET,
         PATIENT_REGISTRATION_S3_KEY,
         PATIENT_APIG_URL,
         PATIENT_APIG_PATH,
         PATIENT_APIG_SECRET_KEY,
+        PATIENT_REGISTRATION_S3_PATH,
         dynamoDbClient,
         S3Client,
         secretsManClient,
@@ -35,34 +37,34 @@ const init = () =>{
 use S3 Client to upload the file into S3 (this is what you redirect if the next function doesnt work properly)
 */
 
-function uploadFileToS3(bucketName, key, filePath) {
+function uploadFileToS3(bucketName, key, filePath, S3Client) {
     /*
     1. Initially, takes the params such as bucket name and reads 
     the file as a stream
     */
     const params = {
-      Bucket: bucketName,
-      Key: key,
-      Body: require('fs').createReadStream(filePath) 
+        Bucket: bucketName,
+        Key: key,
+        Body: require('fs').createReadStream(filePath)
     };
-    
+
     /*
     2. Returns a promise if the s3 upload has been successful 
     If its successful, then it returns success message and location of file
     If it failed, then it will error out and exit this function
     */
     return new Promise((resolve, reject) => {
-      s3.upload(params, (err, data) => {
-        if (err) {
-          console.error('Error uploading file to S3:', err);
-          reject(err);
-        } else {
-          console.warn('File uploaded successfully:', data.Location);
-          resolve(data.Location); 
-        }
-      });
+        S3Client.upload(params, (err, data) => {
+            if (err) {
+                console.error('Error uploading file to S3:', err);
+                reject(err);
+            } else {
+                console.warn('File uploaded successfully:', data.Location);
+                resolve(data.Location);
+            }
+        });
     });
-  }
+}
 
 // Function that will incorporate the logic for uploading the form into S3
 /*
@@ -105,8 +107,16 @@ sort key = email (just in case there are multiple people of same name)
 
 
 
-const main=async event=>{
+const main = async event => {
     const initialConfig = init();
+    //Upload the form detail to S3 - Calling this function 
+    uploadFileToS3(PATIENT_REGISTRATION_S3_BUCKET, PATIENT_REGISTRATION_S3_KEY, PATIENT_REGISTRATION_S3_PATH, S3Client.initialConfig)
+        .then((s3ObjectUrl) => {
+            console.log('File uploaded to S3:', s3ObjectUrl);
+        })
+        .catch((error) => {
+            console.error('Error uploading file to S3:', error);
+        });
 
 }
 
