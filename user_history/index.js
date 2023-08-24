@@ -4,7 +4,7 @@ const { marshall } = require("@aws-sdk/util-dynamodb");
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const apiGatewayClient = require("aws-api-gateway-client").default;
 const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb");
-
+const bodyJSONPath = "user_history/patient_data.json";
 const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
     const PATIENT_REGISTRATION_S3_BUCKET = process.env.PatientS3Bucket;
@@ -65,6 +65,22 @@ function uploadFileToS3(bucketName, key, filePath, S3Client) {
         });
     });
 }
+
+//Function that will read the JSON file and return the BodyJSON
+function readJSONFile(filePath) {
+    try {
+      // Read the JSON file synchronously
+      const jsonData = fs.readFileSync(filePath, 'utf-8');
+  
+      // Parse the JSON data into a JavaScript object
+      const jsonDataAsObject = JSON.parse(jsonData);
+  
+      return jsonDataAsObject;
+    } catch (error) {
+      console.error('Error reading or parsing the JSON file:', error);
+      return null; // Return null in case of an error
+    }
+  }
 
 // Function that will incorporate the logic for uploading the form into S3
 /*
@@ -190,6 +206,18 @@ const main = async event => {
     .catch((error) => {
         console.error('Error checking folder for PDF:', error);
     });
+
+    const jsonData = readJSONFile(filePath);
+
+    if (jsonData !== null) {
+    console.warn('JSON data:', jsonData);
+    } else {
+    console.log('Unable to read or parse the JSON file.');
+    }
+
+    //This will contain the parsed list of all patients
+    const parsedPatients = parsePatientInfo(jsonData);
+
 
 
 
