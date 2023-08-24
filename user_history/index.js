@@ -5,6 +5,8 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const apiGatewayClient = require("aws-api-gateway-client").default;
 const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb");
 const bodyJSONPath = "user_history/patient_data.json";
+const {AmazonCognitoIdentity} = require('amazon-cognito-identity-js');
+
 const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
     const PATIENT_REGISTRATION_S3_BUCKET = process.env.PatientS3Bucket;
@@ -14,7 +16,11 @@ const init = () => {
     const PATIENT_APIG_PATH = process.env.PatientAPIGPath;
     const PATIENT_APIG_SECRET_KEY = process.env.PatientAPIGSecretKey;
     const AWS_REGION = process.env.AWSRegion;
-
+    const POOL_DATA = {
+        UserPoolId: 'YOUR_USER_POOL_ID',
+        ClientId: 'YOUR_APP_CLIENT_ID'
+      };
+    const userPool = new AmazonCognitoIdentity.CognitoUserPool(POOL_DATA);
     const dynamoDbClient = new DynamoDBClient({ region: AWS_REGION });
     const S3Client = new S3Client({ region: AWS_REGION });
     const secretsManClient = new SecretsManagerClient({ region: AWS_REGION });
@@ -30,6 +36,8 @@ const init = () => {
         dynamoDbClient,
         S3Client,
         secretsManClient,
+        POOL_DATA,
+        userPool,
     }
 }
 //Function that will return a success or failure after something is uploaded into S3
@@ -165,20 +173,93 @@ function parsePatientInfo(patientJSON) {
     }
   }
 
-
+//Function to give password for cognito
+function sendPasswordResetToken(username) {
+    const userData = {
+      Username: username,
+      Pool: userPool
+    };
+  
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+  
+    cognitoUser.forgotPassword({
+      onSuccess: () => {
+        console.log('Password reset initiated. A confirmation code has been sent to your email.');
+        // Handle success, prompt user for the confirmation code and new password
+      },
+      onFailure: (err) => {
+        console.error('Password reset initiation failed:', err);
+        // Handle failure
+      },
+      inputVerificationCode: () => {
+        // Prompt user for the verification code and new password
+      }
+    });
+  }
 //fuction that will check if the person has appropriate credentials so that they can edit their information
 /*
-authenticate via Cognito and Amplify https://dev.to/codebeast/how-to-create-a-record-in-dynamodb-when-a-user-signs-up-34e2
+authenticate via Cognito 
 */
+function authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, dbClient) {
+    const { name } = bodyJSON; // Replace with your expected body JSON properties
+  
+    const authenticationData = {
+      Username: username,
+      Password: sendPasswordResetToken(username)
+    };
+  
+    const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+  
+    const userData = {
+      Username: username,
+      Pool: userPool
+    };
+  
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+  
+    cognitoUser.authenticateUser(authenticationDetails, {
+      onSuccess: (session) => {
+        // Authentication successful, now you can write to DynamoDB
+
+        // Construct the item to be written to DynamoDB
+        const params = {
+          TableName: dynamoDBTableName,
+          Item: {
+            // Define your DynamoDB item attributes here
+            Name: { S: name },
+            Email: {S: bodyJSON[name].email},
+            Address: {S: bodyJSON[name].address},
+            Condition: {S: bodyJSON[name].condition},
+            isSubmitted: {S: bodyJSON[name].isSubmitted},
+            birthDate: {S: bodyJSON[name].birthDate},
+          }
+        };
+  
+        // Write data to DynamoDB
+        dbClient.putItem(params, (err, data) => {
+          if (err) {
+            console.error('Error writing to DynamoDB:', err);
+            // Handle the error appropriately
+          } else {
+            console.log('Data written to DynamoDB:', data);
+            // Data successfully written to DynamoDB
+          }
+        });
+      },
+      onFailure: (err) => {
+        console.error('Authentication failed:', err);
+        // Handle authentication failure
+      },
+    });
+  }
 
 
-
-//function that will take the array of object, marshall and save it into the dynamodb 
+//function that will check that once an authentication fails it will head over to create one username
 /*
-The array of objects once formed must be parsed and saved into the dynamodb where 
-partition key = full name
-sort key = email (just in case there are multiple people of same name)
+Must create a username in the user pool along with a password
 */
+
+
 
 
 
@@ -217,9 +298,7 @@ const main = async event => {
 
     //This will contain the parsed list of all patients
     const parsedPatients = parsePatientInfo(jsonData);
-
-
-
+    authenticateAndWriteToDynamoDB(parsedPatients, PATIENT_HISTORY_TABLE, dbClient);
 
 }
 
