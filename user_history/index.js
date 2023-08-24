@@ -35,7 +35,34 @@ const init = () =>{
 use S3 Client to upload the file into S3 (this is what you redirect if the next function doesnt work properly)
 */
 
-
+function uploadFileToS3(bucketName, key, filePath) {
+    /*
+    1. Initially, takes the params such as bucket name and reads 
+    the file as a stream
+    */
+    const params = {
+      Bucket: bucketName,
+      Key: key,
+      Body: require('fs').createReadStream(filePath) 
+    };
+    
+    /*
+    2. Returns a promise if the s3 upload has been successful 
+    If its successful, then it returns success message and location of file
+    If it failed, then it will error out and exit this function
+    */
+    return new Promise((resolve, reject) => {
+      s3.upload(params, (err, data) => {
+        if (err) {
+          console.error('Error uploading file to S3:', err);
+          reject(err);
+        } else {
+          console.warn('File uploaded successfully:', data.Location);
+          resolve(data.Location); 
+        }
+      });
+    });
+  }
 
 // Function that will incorporate the logic for uploading the form into S3
 /*
@@ -43,6 +70,7 @@ for the given input name, check if the form already exists in S3 - should be a f
 if it does exist = set the condition to true and return this
 if it doesn't exist = circuilate back to the user and prompt them to do it = it won't allow you to process the event further (save in the db) = should throw error
 */
+
 
 
 
