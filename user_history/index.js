@@ -72,9 +72,32 @@ for the given input name, check if the form already exists in S3 - should be a f
 if it does exist = set the condition to true and return this
 if it doesn't exist = circuilate back to the user and prompt them to do it = it won't allow you to process the event further (save in the db) = should throw error
 */
-
-
-
+async function checkFolderForPDF(bucketName, folderName, S3Client) {
+    try {
+      // List objects in the specified folder
+      const listObjectsParams = {
+        Bucket: bucketName,
+        Prefix: `${folderName}/` // Use the specified folder as a prefix
+      };
+  
+      const { Contents } = await s3.listObjects(listObjectsParams).promise();
+  
+      // Check if there are any objects in the folder
+      if (Contents.length === 0) {
+        return false; // No objects found in the folder
+      }
+  
+      // Check if there is a PDF file in the folder
+      const pdfFileExists = Contents.some((object) =>
+        object.Key.toLowerCase().endsWith('.pdf')
+      );
+  
+      return pdfFileExists;
+    } catch (error) {
+      console.error('Error checking folder for PDF:', error);
+      return false; // An error occurred
+    }
+  }
 
 
 // Function that will take the input body and return in an object format that is parsable
@@ -117,6 +140,8 @@ const main = async event => {
         .catch((error) => {
             console.error('Error uploading file to S3:', error);
         });
+
+    
 
 }
 
