@@ -320,4 +320,5 @@ module.exports = {
     checkFolderForPDF,
     readJSONFile,
     uploadFileToS3,
+    main,
 }
