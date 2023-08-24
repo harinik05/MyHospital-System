@@ -246,7 +246,8 @@ function authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, dbClient) {
           }
         });
       },
-      onFailure: (err) => {
+      onFailure: (err) => { 
+        createUserInUserPool(username);
         console.error('Authentication failed:', err);
         // Handle authentication failure
       },
@@ -258,11 +259,19 @@ function authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, dbClient) {
 /*
 Must create a username in the user pool along with a password
 */
-
-
-
-
-
+function createUserInUserPool(username) {
+    const password = sendPasswordResetToken(username);
+    userPool.signUp(username, password, null, null, (err, result) => {
+      if (err) {
+        console.error('Error creating user in Cognito User Pool:', err);
+        // Handle the error appropriately
+      } else {
+        const cognitoUser = result.user;
+        console.warn('User created in Cognito User Pool:', cognitoUser.getUsername());
+        // Handle successful user creation
+      }
+    });
+}
 
 const main = async event => {
     const initialConfig = init();
@@ -304,4 +313,11 @@ const main = async event => {
 
 module.exports = {
     init,
+    createUserInUserPool,
+    authenticateAndWriteToDynamoDB,
+    sendPasswordResetToken,
+    parsePatientInfo,
+    checkFolderForPDF,
+    readJSONFile,
+    uploadFileToS3,
 }
