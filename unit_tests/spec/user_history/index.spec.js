@@ -259,6 +259,92 @@ describe('sendPasswordResetToken', () => {
         }, 0);
     });
 });
+  
+  describe('authenticateAndWriteToDynamoDB', () => {
+    let mockDBClient;
+    let mockPutItem;
+  
+    beforeEach(() => {
+      // Create mock functions for the DB client and its putItem method
+      mockPutItem = jasmine.createSpy('putItem');
+      mockDBClient = {
+        putItem: mockPutItem,
+      };
+  
+      // Replace AmazonCognitoIdentity with a mock object
+      spyOn(AmazonCognitoIdentity, 'CognitoUser').and.returnValue({
+        authenticateUser: (authDetails, callbacks) => {
+          // Simulate a successful authentication
+          callbacks.onSuccess({});
+        },
+      });
+  
+      // Replace the userPool with a mock object
+      spyOn(AmazonCognitoIdentity, 'CognitoUserPool').and.returnValue(userPool);
+  
+      // Clear any previous spy calls
+      mockPutItem.calls.reset();
+    });
+  
+    it('should authenticate and write to DynamoDB', () => {
+      const bodyJSON = {
+        name: "Sophia Lee",
+        email: "sophia@example.com",
+        address: "444 Birch St",
+        condition: "Nausea",
+        isSubmitted: false,
+        birthDate: "1989-07-30"
+      };
+  
+      const dynamoDBTableName = 'YourTableName';
+  
+      // Call the function with the mock objects
+      app.authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, mockDBClient);
+  
+      // Verify that CognitoUser and putItem were called as expected
+      expect(AmazonCognitoIdentity.CognitoUser).toHaveBeenCalled();
+      expect(mockPutItem).toHaveBeenCalledWith({
+        TableName: dynamoDBTableName,
+        Item: {
+          Name: { S: bodyJSON.name },
+          Email: {S: bodyJSON.email},
+          Address: {S: bodyJSON.address},
+          Condition: {S: bodyJSON.condition},
+          isSubmitted: {S: bodyJSON.isSubmitted},
+          BirthDate: {S: bodyJSON.birthDate},
+        },
+      });
+    });
+  
+    it('should handle authentication failure', () => {
+      // Replace the CognitoUser mock to simulate authentication failure
+      spyOn(AmazonCognitoIdentity, 'CognitoUser').and.returnValue({
+        authenticateUser: (authDetails, callbacks) => {
+          // Simulate authentication failure
+          callbacks.onFailure('Authentication failed');
+        },
+      });
+      const bodyJSON = {
+        name: "Sophia Lee",
+        email: "sophia@example.com",
+        address: "444 Birch St",
+        condition: "Nausea",
+        isSubmitted: false,
+        birthDate: "1989-07-30"
+      };
+  
+      const dynamoDBTableName = 'YourTableName';
+  
+      // Call the function with the mock objects
+      app.authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, mockDBClient);
+  
+      // Verify that createUserInUserPool and error handling are called as expected
+      expect(AmazonCognitoIdentity.CognitoUser).toHaveBeenCalled();
+      expect(mockPutItem).not.toHaveBeenCalled(); // putItem should not be called on authentication failure
+      // You can also add expectations for createUserInUserPool and error handling
+    });
+  });
+  
 
 
 
