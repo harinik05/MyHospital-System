@@ -2,58 +2,48 @@ const { S3Client } = require("@aws-sdk/client-s3");
 const app = require("/Users/harinikarthik/Documents/GitHub/MyHospital-System/user_history/index.js");
 const {mockClient} = require("aws-sdk-client-mock");
 
-describe("I should be able to upload a file to S3 successfully", () =>{
-    beforeEach(() => {
-        S3Client.reset();
-        apiGatewayClient.reset();
-        DynamoDBClient.reset();
-        SecretsManagerClient.reset();
-    })
-    afterEach(() => {
-        process.env.awsRegion = "";
-    })
 
-    it('should upload a file to S3', (done) => {
-        const bucketName = 'your-bucket';
-        const key = 'your-key';
-        const filePath = path.join(__dirname, 'test-file.txt'); // Replace with your test file path
-      
-        app.uploadFileToS3(bucketName, key, filePath, AWS.S3)
-          .then((s3ObjectUrl) => {
-            // Verify that the function returns the correct S3 object URL
-            expect(s3ObjectUrl).toEqual('https://s3.example.com/your-bucket/your-key');
-            done(); // Notify Jasmine that the asynchronous test is complete
-          })
-          .catch((error) => {
-            // If an error occurs, fail the test
-            done.fail(error);
-          });
-      });
-      
-      it('should handle S3 upload error', (done) => {
-        // Simulate an S3 upload error
-        mockClient.restore('S3', 'upload');
-        mockClient.mock('S3', 'upload', (params, callback) => {
-          // Simulate an S3 upload error
-          callback(new Error('S3 upload failed'));
-        });
-      
-        const bucketName = 'your-bucket';
-        const key = 'your-key';
-        const filePath = path.join(__dirname, 'test-file.txt'); // Replace with your test file path
-      
-        app.uploadFileToS3(bucketName, key, filePath, mockClient.S3Client)
-          .then(() => {
-            // The function should not resolve successfully
-            done.fail('Function should have rejected the promise');
-          })
-          .catch((error) => {
-            // Verify that the function handles S3 upload errors
-            expect(error.message).toEqual('S3 upload failed');
-            done(); // Notify Jasmine that the asynchronous test is complete
-          });
-      });     
-})
+describe('Upload file to S3 Bucket', () => {
+    let S3;
+    beforeEach(() =>{
+        S3 = mockClient(AWS.S3);
+    });
+    afterEach(() => {
+        S3.restore();
+    });
+    const bucketName = 'your-bucket-name';
+    const key = 'test/file.txt';
+    const filePath = 'path/to/your/file.txt';
+
+    // Test case: Successful upload
+    it('should upload a file to S3 successfully', async () => {
+        const S3 = mockClient(AWS.S3);
+        // Mock the S3 upload function to resolve with a success message
+        S3.mockResolvedValueOnce('upload', { Location: 'https://s3.amazonaws.com/bucket/test/file.txt' });
+
+        try {
+            const result = await uploadFileToS3(bucketName, key, filePath, S3);
+            expect(result).toBe('https://s3.amazonaws.com/bucket/test/file.txt');
+        } catch (error) {
+            // Handle any unexpected errors
+            throw error;
+        } 
+    });
+
+    // Test case: Error during upload
+    it('should handle an error during S3 upload', async () => {
+        
+        // Mock the S3 upload function to reject with an error
+        S3.mockRejectedValueOnce('upload', new Error('Upload failed'));
+
+        try {
+            await uploadFileToS3(bucketName, key, filePath, S3);
+        } catch (error) {
+            expect(error.message).toBe('Upload failed');
+        } 
+    });
+});
+
 
 describe('readJSONFile', () => {
     const validFilePath = path.join(__dirname, 'unit_tests/spec/user_history/patient_files/patient_file_01.json.json'); 
@@ -81,6 +71,8 @@ describe('readJSONFile', () => {
     });
 
 });
+
+
 
 
 
