@@ -199,6 +199,69 @@ describe('parsePatientInfo', () => {
 });
 
 
+describe('sendPasswordResetToken', () => {
+    let mockCognitoUser;
+
+    const username = 'testuser';
+
+    beforeEach(() => {
+        // Create a mock CognitoUser instance using the mock client SDK
+        mockCognitoUser = new AmazonCognitoIdentity.CognitoUser({
+            Username: username,
+            Pool: {} // You can provide additional mock data if needed
+        });
+
+        // Spy on the forgotPassword method of the mock CognitoUser instance
+        spyOn(mockCognitoUser, 'forgotPassword');
+    });
+
+    // Test case: Successful password reset initiation
+    it('should initiate a password reset and log a success message', (done) => {
+        // Mock a successful password reset initiation
+        mockCognitoUser.forgotPassword.and.callFake((callbacks) => {
+            callbacks.onSuccess(); // Simulate a successful password reset initiation
+        });
+
+        // Call the function
+        app.sendPasswordResetToken(username);
+
+        // Use a setTimeout to allow the asynchronous code to execute
+        setTimeout(() => {
+            // Expect the forgotPassword method to be called
+            expect(mockCognitoUser.forgotPassword).toHaveBeenCalled();
+
+            // Expect a success message to be logged
+            expect(console.log).toHaveBeenCalledWith('Password reset initiated. A confirmation code has been sent to your email.');
+
+            done(); // Call done to signal that the test is complete
+        }, 0);
+    });
+
+    // Test case: Failure during password reset initiation
+    it('should handle a failure during password reset initiation and log an error message', (done) => {
+        // Mock a failure during password reset initiation
+        mockCognitoUser.forgotPassword.and.callFake((callbacks) => {
+            callbacks.onFailure(new Error('Password reset failed'));
+        });
+
+        // Call the function
+        app.sendPasswordResetToken(username);
+
+        // Use a setTimeout to allow the asynchronous code to execute
+        setTimeout(() => {
+            // Expect the forgotPassword method to be called
+            expect(mockCognitoUser.forgotPassword).toHaveBeenCalled();
+
+            // Expect an error message to be logged
+            expect(console.error).toHaveBeenCalledWith('Password reset initiation failed:', jasmine.any(Error));
+
+            done(); // Call done to signal that the test is complete
+        }, 0);
+    });
+});
+
+
+
 
 
 
