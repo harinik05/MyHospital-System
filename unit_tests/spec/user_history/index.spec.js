@@ -125,6 +125,81 @@ describe('checkFolderForPDF', () => {
     });
 });
 
+describe('parsePatientInfo', () => {
+    // Mock patient data in JSON format
+    const patientJSON = `
+        [
+            {
+                "name": "John Doe",
+                "email": "john@example.com",
+                "address": "123 Main St",
+                "condition": "Fever",
+                "isSubmitted": false,
+                "birthDate": "1990-01-01"
+            },
+            {
+                "name": "Jane Smith",
+                "email": "jane@example.com",
+                "address": "456 Elm St",
+                "condition": "Cough",
+                "isSubmitted": false,
+                "birthDate": "1985-05-15"
+            }
+        ]
+    `;
+
+    
+    // Spy on console.error to check for error logs
+    let consoleErrorSpy;
+    
+    beforeEach(() => {
+        consoleErrorSpy = spyOn(console, 'error');
+    });
+
+    // Test case: Successful parsing of patient data
+    it('should parse patient data and return an array of patient objects', () => {
+        app.checkFolderForPDF.and.returnValue(true); // Set the mock to return true
+
+        const parsedPatients = app.parsePatientInfo(patientJSON, app.checkFolderForPDF);
+        
+        expect(parsedPatients).toEqual([
+            {
+                name: 'John Doe',
+                email: 'john@example.com',
+                address: '123 Main St',
+                condition: 'Fever',
+                isSubmitted: true, // Check if isSubmitted is set to true
+                birthDate: '1990-01-01'
+            },
+            {
+                name: 'Jane Smith',
+                email: 'jane@example.com',
+                address: '456 Elm St',
+                condition: 'Cough',
+                isSubmitted: true, // Check if isSubmitted is set to true
+                birthDate: '1985-05-15'
+            }
+        ]);
+        expect(app.checkFolderForPDF).toHaveBeenCalled(); // Ensure checkFolderForPDF was called
+        expect(consoleErrorSpy).not.toHaveBeenCalled(); // Ensure no error was logged
+    });
+
+    // Test case: Handling invalid patient data
+    it('should handle invalid patient data and return an empty array', () => {
+        app.checkFolderForPDF.and.returnValue(false); // Set the mock to return false
+
+        const invalidJSON = 'Invalid JSON'; // Simulate invalid JSON
+        
+        const parsedPatients = app.parsePatientInfo(invalidJSON, checkFolderForPDF);
+        
+        expect(parsedPatients).toEqual([]); // Expect an empty array due to parsing error
+        expect(app.checkFolderForPDF).toHaveBeenCalled(); // Ensure checkFolderForPDF was called
+        expect(consoleErrorSpy).toHaveBeenCalled(); // Ensure an error was logged
+    });
+});
+
+
+
 
 
 
