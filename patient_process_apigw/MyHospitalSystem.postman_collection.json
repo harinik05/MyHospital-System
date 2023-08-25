@@ -1,0 +1,18 @@
+{
+	"info": {
+		"_postman_id": "2c69d657-6ed9-4c96-b27c-a76bc633ebee",
+		"name": "MyHospitalSystem",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "23150716"
+	},
+	"item": [
+		{
+			"name": "register user",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": ["Successfully registered"]
+		}
+	]
+}

@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-01/schema#",
+    "title": "UserHistoryLambdaModel",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z]+$"
+        },
+        "email": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        "address": {
+            "type": "string",
+            "pattern": "^.+$"
+        },
+        "condition": {
+            "type": "string",
+            "pattern": "^.+$"
+        },
+        "isSubmitted": {
+            "type": "boolean"
+        },
+        "birthDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+    },
+    "required": ["name", "email", "address", "condition", "isSubmitted", "birthDate"]
+}
