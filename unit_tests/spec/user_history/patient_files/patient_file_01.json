@@ -1,0 +1,34 @@
+[
+    {
+      "name": "Eva Garcia",
+      "email": "eva@example.com",
+      "address": "222 Cedar St",
+      "condition": "Fatigue",
+      "isSubmitted": false,
+      "birthDate": "1978-09-25"
+    },
+    {
+      "name": "Michael Smith",
+      "email": "michael@example.com",
+      "address": "333 Maple St",
+      "condition": "Allergies",
+      "isSubmitted": false,
+      "birthDate": "1993-04-12"
+    },
+    {
+      "name": "Sophia Lee",
+      "email": "sophia@example.com",
+      "address": "444 Birch St",
+      "condition": "Nausea",
+      "isSubmitted": false,
+      "birthDate": "1989-07-30"
+    },
+    {
+      "name": "David Johnson",
+      "email": "david@example.com",
+      "address": "555 Spruce St",
+      "condition": "Back Pain",
+      "isSubmitted": false,
+      "birthDate": "1975-03-05"
+    }
+]

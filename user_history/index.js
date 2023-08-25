@@ -5,7 +5,9 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const apiGatewayClient = require("aws-api-gateway-client").default;
 const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb");
 const bodyJSONPath = "user_history/patient_data.json";
-const {AmazonCognitoIdentity} = require('amazon-cognito-identity-js');
+const { AmazonCognitoIdentity } = require('amazon-cognito-identity-js');
+const path = require('path'); // Import path for file path
+
 
 const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
@@ -19,7 +21,7 @@ const init = () => {
     const POOL_DATA = {
         UserPoolId: 'YOUR_USER_POOL_ID',
         ClientId: 'YOUR_APP_CLIENT_ID'
-      };
+    };
     const userPool = new AmazonCognitoIdentity.CognitoUserPool(POOL_DATA);
     const dynamoDbClient = new DynamoDBClient({ region: AWS_REGION });
     const S3Client = new S3Client({ region: AWS_REGION });
@@ -77,18 +79,18 @@ function uploadFileToS3(bucketName, key, filePath, S3Client) {
 //Function that will read the JSON file and return the BodyJSON
 function readJSONFile(filePath) {
     try {
-      // Read the JSON file synchronously
-      const jsonData = fs.readFileSync(filePath, 'utf-8');
-  
-      // Parse the JSON data into a JavaScript object
-      const jsonDataAsObject = JSON.parse(jsonData);
-  
-      return jsonDataAsObject;
+        // Read the JSON file synchronously
+        const jsonData = fs.readFileSync(filePath, 'utf-8');
+
+        // Parse the JSON data into a JavaScript object
+        const jsonDataAsObject = JSON.parse(jsonData);
+
+        return jsonDataAsObject;
     } catch (error) {
-      console.error('Error reading or parsing the JSON file:', error);
-      return null; // Return null in case of an error
+        console.error('Error reading or parsing the JSON file:', error);
+        return null; // Return null in case of an error
     }
-  }
+}
 
 // Function that will incorporate the logic for uploading the form into S3
 /*
@@ -98,30 +100,30 @@ if it doesn't exist = circuilate back to the user and prompt them to do it = it 
 */
 async function checkFolderForPDF(bucketName, folderName, S3Client) {
     try {
-      // List objects in the specified folder
-      const listObjectsParams = {
-        Bucket: bucketName,
-        Prefix: `${folderName}/` // Use the specified folder as a prefix
-      };
-  
-      const { Contents } = await s3.listObjects(listObjectsParams).promise();
-  
-      // Check if there are any objects in the folder
-      if (Contents.length === 0) {
-        return false; // No objects found in the folder
-      }
-  
-      // Check if there is a PDF file in the folder
-      const pdfFileExists = Contents.some((object) =>
-        object.Key.toLowerCase().endsWith('.pdf')
-      );
-  
-      return pdfFileExists;
+        // List objects in the specified folder
+        const listObjectsParams = {
+            Bucket: bucketName,
+            Prefix: `${folderName}/` // Use the specified folder as a prefix
+        };
+
+        const { Contents } = await s3.listObjects(listObjectsParams).promise();
+
+        // Check if there are any objects in the folder
+        if (Contents.length === 0) {
+            return false; // No objects found in the folder
+        }
+
+        // Check if there is a PDF file in the folder
+        const pdfFileExists = Contents.some((object) =>
+            object.Key.toLowerCase().endsWith('.pdf')
+        );
+
+        return pdfFileExists;
     } catch (error) {
-      console.error('Error checking folder for PDF:', error);
-      return false; // An error occurred
+        console.error('Error checking folder for PDF:', error);
+        return false; // An error occurred
     }
-  }
+}
 
 
 // Function that will take the input body and return in an object format that is parsable
@@ -136,123 +138,125 @@ return this as an object with all the details and this object can be iterated ov
 */
 function parsePatientInfo(patientJSON) {
     try {
-      // Parse the JSON string into an object
-      const patientData = JSON.parse(patientJSON);
-  
-      // Check if the parsed data is an array
-      if (!Array.isArray(patientData)) {
-        throw new Error('Input data is not an array.');
-      }
-  
-      // Create an array to store the parsed patient objects
-      const parsedPatients = [];
-  
-      // Iterate over each patient object in the array
-      for (const patient of patientData) {
-        // Extract the desired information from each patient object
-        const { name, email, address, condition, isSubmitted, birthDate } = patient;
-  
-        // Create a new object with the extracted information
-        const parsedPatient = {
-          name,
-          email,
-          address,
-          condition,
-          isSubmitted,
-          birthDate
-        };
-  
-        // Add the parsed patient object to the result array
-        parsedPatients.push(parsedPatient);
-      }
-  
-      return parsedPatients;
+        // Parse the JSON string into an object
+        const patientData = JSON.parse(patientJSON);
+
+        // Check if the parsed data is an array
+        if (!Array.isArray(patientData)) {
+            throw new Error('Input data is not an array.');
+        }
+
+        // Create an array to store the parsed patient objects
+        const parsedPatients = [];
+
+        // Iterate over each patient object in the array
+        for (const patient of patientData) {
+            // Extract the desired information from each patient object
+            const { name, email, address, condition, isSubmitted, birthDate } = patient;
+            if (checkFolderForPDF === true){
+            isSubmitted = true;
+            // Create a new object with the extracted information
+            const parsedPatient = {
+                name,
+                email,
+                address,
+                condition,
+                isSubmitted,
+                birthDate
+            };
+
+            // Add the parsed patient object to the result array
+            parsedPatients.push(parsedPatient);
+        }
+        }
+
+        return parsedPatients;
     } catch (error) {
-      console.error('Error parsing patient data:', error);
-      return []; // Return an empty array in case of errors
+        console.error('Error parsing patient data:', error);
+        return []; // Return an empty array in case of errors
     }
-  }
+}
 
 //Function to give password for cognito
 function sendPasswordResetToken(username) {
     const userData = {
-      Username: username,
-      Pool: userPool
+        Username: username,
+        Pool: userPool
     };
-  
+
     const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
-  
+
     cognitoUser.forgotPassword({
-      onSuccess: () => {
-        console.log('Password reset initiated. A confirmation code has been sent to your email.');
-        // Handle success, prompt user for the confirmation code and new password
-      },
-      onFailure: (err) => {
-        console.error('Password reset initiation failed:', err);
-        // Handle failure
-      },
-      inputVerificationCode: () => {
-        // Prompt user for the verification code and new password
-      }
+        onSuccess: () => {
+            console.log('Password reset initiated. A confirmation code has been sent to your email.');
+            // Handle success, prompt user for the confirmation code and new password
+        },
+        onFailure: (err) => {
+            console.error('Password reset initiation failed:', err);
+            // Handle failure
+        },
+        inputVerificationCode: () => {
+            // Prompt user for the verification code and new password
+        }
     });
-  }
+}
 //fuction that will check if the person has appropriate credentials so that they can edit their information
 /*
 authenticate via Cognito 
 */
 function authenticateAndWriteToDynamoDB(bodyJSON, dynamoDBTableName, dbClient) {
     const { name } = bodyJSON; // Replace with your expected body JSON properties
-  
-    const authenticationData = {
-      Username: username,
-      Password: sendPasswordResetToken(username)
-    };
-  
-    const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
-  
-    const userData = {
-      Username: username,
-      Pool: userPool
-    };
-  
-    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
-  
-    cognitoUser.authenticateUser(authenticationDetails, {
-      onSuccess: (session) => {
-        // Authentication successful, now you can write to DynamoDB
 
-        // Construct the item to be written to DynamoDB
-        const params = {
-          TableName: dynamoDBTableName,
-          Item: {
-            // Define your DynamoDB item attributes here
-            Name: { S: name },
-            Email: {S: bodyJSON[name].email},
-            Address: {S: bodyJSON[name].address},
-            Condition: {S: bodyJSON[name].condition},
-            isSubmitted: {S: bodyJSON[name].isSubmitted},
-            birthDate: {S: bodyJSON[name].birthDate},
-          }
-        };
-  
-        // Write data to DynamoDB
-        dbClient.putItem(params, (err, data) => {
-          if (err) {
-            console.error('Error writing to DynamoDB:', err);
-            // Handle the error appropriately
-          } else {
-            console.log('Data written to DynamoDB:', data);
-            // Data successfully written to DynamoDB
-          }
-        });
-      },
-      onFailure: (err) => { 
-        createUserInUserPool(username);
-        console.error('Authentication failed:', err);
-        // Handle authentication failure
-      },
+    const authenticationData = {
+        Username: username,
+        Password: sendPasswordResetToken(username)
+    };
+
+    const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+
+    const userData = {
+        Username: username,
+        Pool: userPool
+    };
+
+    const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+    cognitoUser.authenticateUser(authenticationDetails, {
+        onSuccess: (session) => {
+            // Authentication successful, now you can write to DynamoDB
+
+            // Construct the item to be written to DynamoDB
+            const params = {
+                TableName: dynamoDBTableName,
+                Item: {
+                    // Define your DynamoDB item attributes here
+                    Name: { S: name },
+                    Email: { S: bodyJSON[name].email },
+                    Address: { S: bodyJSON[name].address },
+                    Condition: { S: bodyJSON[name].condition },
+                    isSubmitted: { S: bodyJSON[name].isSubmitted },
+                    birthDate: { S: bodyJSON[name].birthDate },
+                }
+            };
+
+            // Write data to DynamoDB
+            dbClient.putItem(params, (err, data) => {
+                if (err) {
+                    console.error('Error writing to DynamoDB:', err);
+                    // Handle the error appropriately
+                } else {
+                    console.log('Data written to DynamoDB:', data);
+                    // Data successfully written to DynamoDB
+                }
+            });
+        },
+        onFailure: (err) => {
+            createUserInUserPool(username);
+            console.error('Authentication failed:', err);
+            // Handle authentication failure
+        },
     });
-  }
+}
 
 
 //function that will check that once an authentication fails it will head over to create one username
@@ -262,14 +266,14 @@ Must create a username in the user pool along with a password
 function createUserInUserPool(username) {
     const password = sendPasswordResetToken(username);
     userPool.signUp(username, password, null, null, (err, result) => {
-      if (err) {
-        console.error('Error creating user in Cognito User Pool:', err);
-        // Handle the error appropriately
-      } else {
-        const cognitoUser = result.user;
-        console.warn('User created in Cognito User Pool:', cognitoUser.getUsername());
-        // Handle successful user creation
-      }
+        if (err) {
+            console.error('Error creating user in Cognito User Pool:', err);
+            // Handle the error appropriately
+        } else {
+            const cognitoUser = result.user;
+            console.warn('User created in Cognito User Pool:', cognitoUser.getUsername());
+            // Handle successful user creation
+        }
     });
 }
 
@@ -283,26 +287,26 @@ const main = async event => {
         .catch((error) => {
             console.error('Error uploading file to S3:', error);
         });
-    
+
     //for each of the input name that comes in 
     checkFolderForPDF(PATIENT_REGISTRATION_S3_BUCKET, PatientName)
-    .then((result) => {
-        if (result) {
-        console.log('PDF file found in the folder.');
-        } else {
-        console.log('No PDF file found in the folder.');
-        }
-    })
-    .catch((error) => {
-        console.error('Error checking folder for PDF:', error);
-    });
+        .then((result) => {
+            if (result) {
+                console.log('PDF file found in the folder.');
+            } else {
+                console.log('No PDF file found in the folder.');
+            }
+        })
+        .catch((error) => {
+            console.error('Error checking folder for PDF:', error);
+        });
 
     const jsonData = readJSONFile(filePath);
 
     if (jsonData !== null) {
-    console.warn('JSON data:', jsonData);
+        console.warn('JSON data:', jsonData);
     } else {
-    console.log('Unable to read or parse the JSON file.');
+        console.log('Unable to read or parse the JSON file.');
     }
 
     //This will contain the parsed list of all patients

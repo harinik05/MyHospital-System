@@ -9,6 +9,7 @@
     "@aws-sdk/util-dynamodb": "^3.398.0",
     "amazon-cognito-identity-js": "^6.3.5",
     "aws-api-gateway-client": "^0.3.7",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
   }
 }
