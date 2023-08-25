@@ -1,0 +1,25 @@
+type Patient {
+  name: String!
+  email: String!
+  address: String!
+  condition: String!
+  isSubmitted: Boolean!
+  birthDate: String!
+}
+
+type Query {
+  getPatientData: [Patient]!
+}
+
+type Mutation {
+  uploadFileToS3(bucketName: String!, key: String!, filePath: String!): String
+  checkFolderForPDF(bucketName: String!, folderName: String!): Boolean
+  authenticateAndWriteToDynamoDB(patientData: [Patient]!): String
+  createUserInUserPool(username: String!): String
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  type: Patient
+}

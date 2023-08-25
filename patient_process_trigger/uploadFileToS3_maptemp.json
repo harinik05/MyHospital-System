@@ -1,0 +1,8 @@
+{
+    "version": "2018-05-29",
+    "operation": "Invoke",
+    "payload": {
+        "field": "uploadFileToS3",
+        "arguments": $util.toJson($ctx.arguments)
+    }
+}

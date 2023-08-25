@@ -10,6 +10,7 @@
     "amazon-cognito-identity-js": "^6.3.5",
     "aws-api-gateway-client": "^0.3.7",
     "fs": "^0.0.1-security",
+    "graphql-tag": "^2.12.6",
     "path": "^0.12.7"
   }
 }
