@@ -346,6 +346,74 @@ describe('sendPasswordResetToken', () => {
   });
   
 
+describe('createUserInUserPool', () => {
+  let mockUserPool;
+  let mockSignUp;
+
+  beforeEach(() => {
+    // Create mock functions for the userPool and its signUp method
+    mockSignUp = jasmine.createSpy('signUp');
+    mockUserPool = {
+      signUp: mockSignUp,
+    };
+
+    // Replace AmazonCognitoIdentity with a mock object
+    spyOn(AmazonCognitoIdentity, 'CognitoUserPool').and.returnValue(mockUserPool);
+
+    // Clear any previous spy calls
+    mockSignUp.calls.reset();
+  });
+
+  it('should create a user in Cognito User Pool', () => {
+    const username = 'testuser';
+
+    // Call the function with the mock objects
+    app.createUserInUserPool(username);
+
+    // Verify that signUp was called with the expected arguments
+    expect(mockSignUp).toHaveBeenCalledWith(
+      username,
+      jasmine.any(String), // You may want to add a matcher for the password
+      null,
+      null,
+      jasmine.any(Function) // A callback function should be passed
+    );
+
+    // Simulate a successful signup
+    const mockResult = {
+      user: {
+        getUsername: () => 'testuser',
+      },
+    };
+    mockSignUp.calls.argsFor(0)[4](null, mockResult);
+
+    // Add expectations for handling successful user creation
+  });
+
+  it('should handle signup error', () => {
+    const username = 'testuser';
+
+    // Call the function with the mock objects
+    app.createUserInUserPool(username);
+
+    // Verify that signUp was called with the expected arguments
+    expect(mockSignUp).toHaveBeenCalledWith(
+      username,
+      jasmine.any(String), // You may want to add a matcher for the password
+      null,
+      null,
+      jasmine.any(Function) // A callback function should be passed
+    );
+
+    // Simulate a signup error
+    const mockError = new Error('Signup failed');
+    mockSignUp.calls.argsFor(0)[4](mockError, null);
+
+    // Add expectations for handling the signup error
+  });
+});
+
+
 
 
 
