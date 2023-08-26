@@ -137,3 +137,57 @@ Here's a high-level overview of how you might integrate API Gateway with AWS App
    Clients of your API will now use the API Gateway endpoint to interact with your AWS AppSync GraphQL API.
 
 Please note that this approach adds complexity to your architecture, and it's essential to consider whether it aligns with your specific use case and requirements. In many cases, using AWS AppSync directly without an API Gateway proxy might be more straightforward and sufficient.
+
+
+
+
+
+
+
+
+-----------------
+
+
+#MOST IMPORTANT
+To route requests from API Gateway to AWS AppSync and then to a Lambda function, you typically use AWS AppSync resolvers to connect the GraphQL API to Lambda functions. You won't be able to directly code this routing logic inside a single Lambda function. Instead, you configure your AWS AppSync API to use Lambda data sources and resolvers.
+
+Here's a high-level overview of how to set up this routing:
+
+1. **Create a Lambda Function**: Write your Lambda function(s) that will perform the business logic when specific GraphQL operations are invoked. You might have separate Lambda functions for different GraphQL mutations or queries.
+
+2. **Create an AWS AppSync API**:
+   - In the AWS AppSync console, create a new API.
+   - Define your GraphQL schema that matches your data and operations.
+
+3. **Create AWS AppSync Data Sources**:
+   - For each Lambda function, create a corresponding AWS AppSync data source of type AWS Lambda.
+   - Link each data source to the respective Lambda function.
+
+4. **Create Resolvers**:
+   - For each GraphQL operation (query or mutation), create a resolver.
+   - Specify the data source (Lambda function) associated with each resolver.
+   - Map the GraphQL operation to the Lambda function using the resolver mapping templates.
+
+5. **Attach the Schema to Your AppSync API**:
+   - Once you've created your resolvers, attach the schema to your AWS AppSync API.
+
+6. **Deploy Your AppSync API**:
+   - Deploy the AWS AppSync API to make it accessible via a unique URL.
+
+7. **Set Up API Gateway**:
+   - In API Gateway, create a new REST API if you haven't already.
+   - Create resource paths and methods (GET, POST, etc.) to receive incoming HTTP requests.
+   - For each resource method that you want to route to AWS AppSync, set up integration with AWS AppSync:
+     - Integration type should be "AWS_PROXY."
+     - Choose the AppSync API as the integration endpoint.
+     - Map the HTTP method and resource path to the corresponding AWS AppSync query or mutation.
+
+8. **Deploy the API Gateway**:
+   - Deploy the API Gateway to make it accessible via a public URL.
+
+9. **Invoke the API**:
+   - Send HTTP requests to the API Gateway endpoints.
+   - API Gateway will route requests to the appropriate AWS AppSync query or mutation.
+   - AWS AppSync will, in turn, trigger the associated Lambda function.
+
+By following this approach, you can route requests from API Gateway to AWS AppSync and then to Lambda functions, allowing you to leverage the power of GraphQL for your API while still using serverless Lambda functions to implement your business logic. Each GraphQL operation (query or mutation) should have a corresponding resolver that specifies which Lambda function to invoke.

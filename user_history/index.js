@@ -7,8 +7,8 @@ const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sd
 const bodyJSONPath = "user_history/patient_data.json";
 const { AmazonCognitoIdentity } = require('amazon-cognito-identity-js');
 const path = require('path'); // Import path for file path
-const {appSyncClient} = require("aws-appsync").default;
-const gql = require("graphql-tag")
+const { appSyncClient } = require("aws-appsync").default;
+const gql = require("graphql-tag");
 
 const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
@@ -16,6 +16,8 @@ const init = () => {
     const PATIENT_REGISTRATION_S3_KEY = process.env.PatientS3Key;
     const PATIENT_REGISTRATION_S3_PATH = process.env.PatientS3Path;
     const PATIENT_APIG_URL = process.env.PatientAPIGURL;
+    const PATIENT_APPS_URL = process.env.PatientAPPSURL;
+
     const PATIENT_APIG_PATH = process.env.PatientAPIGPath;
     const PATIENT_APIG_SECRET_KEY = process.env.PatientAPIGSecretKey;
     const AWS_REGION = process.env.AWSRegion;
@@ -27,9 +29,34 @@ const init = () => {
     const dynamoDbClient = new DynamoDBClient({ region: AWS_REGION });
     const S3Client = new S3Client({ region: AWS_REGION });
     const secretsManClient = new SecretsManagerClient({ region: AWS_REGION });
+    const appsyncclient = new appSyncClient({
+        url: PATIENT_APPS_URL, 
+        region: AWS_REGION, 
+        auth: {
+            type: "AWS_IAM", 
+            credentials: {
+                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+                sessionToken: process.env.AWS_SESSION_TOKEN, 
+            },
+        },
+    })
+
+    const QueryForAppSync = gql`
+        query QueryForAppSync{
+            getPatientData{
+                name
+                email
+                address
+                condition
+                isSubmitted
+                birthDate
+            }
+        }`
 
     return {
         PATIENT_HISTORY_TABLE,
+        QueryForAppSync,
         PATIENT_REGISTRATION_S3_BUCKET,
         PATIENT_REGISTRATION_S3_KEY,
         PATIENT_APIG_URL,
@@ -37,12 +64,43 @@ const init = () => {
         PATIENT_APIG_SECRET_KEY,
         PATIENT_REGISTRATION_S3_PATH,
         dynamoDbClient,
+        appsyncclient,
         S3Client,
         secretsManClient,
         POOL_DATA,
         userPool,
     }
 }
+
+//Function that will take input from aPPsync
+async function takeAppSyncInput(){
+    try {
+        // Perform the AWS AppSync query
+        const response = await appsyncclient.query({
+            query: QueryForAppSync,
+        });
+
+        // Handle the response
+        console.log("AWS AppSync Response:", response);
+
+        // Return a response to the client
+        return {
+            statusCode: 200,
+            body: JSON.stringify(response.data),
+        };
+    } catch (error) {
+        console.error("Error invoking AWS AppSync:", error);
+
+        // Return an error response to the client
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: "Internal Server Error" }),
+        };
+    }
+};
+
+
+//Function for returning a response from AppSync
 //Function that will return a success or failure after something is uploaded into S3
 /*
 use S3 Client to upload the file into S3 (this is what you redirect if the next function doesnt work properly)
@@ -154,21 +212,21 @@ function parsePatientInfo(patientJSON) {
         for (const patient of patientData) {
             // Extract the desired information from each patient object
             const { name, email, address, condition, isSubmitted, birthDate } = patient;
-            if (checkFolderForPDF === true){
-            isSubmitted = true;
-            // Create a new object with the extracted information
-            const parsedPatient = {
-                name,
-                email,
-                address,
-                condition,
-                isSubmitted,
-                birthDate
-            };
+            if (checkFolderForPDF === true) {
+                isSubmitted = true;
+                // Create a new object with the extracted information
+                const parsedPatient = {
+                    name,
+                    email,
+                    address,
+                    condition,
+                    isSubmitted,
+                    birthDate
+                };
 
-            // Add the parsed patient object to the result array
-            parsedPatients.push(parsedPatient);
-        }
+                // Add the parsed patient object to the result array
+                parsedPatients.push(parsedPatient);
+            }
         }
 
         return parsedPatients;
@@ -280,6 +338,8 @@ function createUserInUserPool(username) {
 
 const main = async event => {
     const initialConfig = init();
+    //app sync input
+    takeAppSyncInput()
     //Upload the form detail to S3 - Calling this function 
     uploadFileToS3(PATIENT_REGISTRATION_S3_BUCKET, PATIENT_REGISTRATION_S3_KEY, PATIENT_REGISTRATION_S3_PATH, S3Client.initialConfig)
         .then((s3ObjectUrl) => {
