@@ -7,7 +7,8 @@ const { DynamoDBClient, QueryCommand, BatchWriteItemCommand } = require("@aws-sd
 const bodyJSONPath = "user_history/patient_data.json";
 const { AmazonCognitoIdentity } = require('amazon-cognito-identity-js');
 const path = require('path'); // Import path for file path
-
+const {appSyncClient} = require("aws-appsync").default;
+const gql = require("graphql-tag")
 
 const init = () => {
     const PATIENT_HISTORY_TABLE = process.env.PatientDynamoDB;
